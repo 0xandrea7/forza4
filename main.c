@@ -14,6 +14,10 @@ int main(void) {
 		user_input(&t);
 		print_table(&t);
 
+		if (win(&t, 'u')) {
+			printf("user win the game!!!\n");
+			break;
+		}
 	}
 
 	return 0;

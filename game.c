@@ -2,6 +2,8 @@
 
 #include "game.h"
 
+uint64_t cols_separator = 0;
+
 void init_table(table *t){
 	/* 
 	 * setto tutte le variabili a zero 
@@ -12,15 +14,23 @@ void init_table(table *t){
 
 	t->last_row = 0;
 	t->last_col = 0;
+
+	for (int8_t i = 0; i < COLS; i++) {
+		cols_separator |= (1ULL << ((i * ROWS) + (ROWS - 1)));
+	}
 }
 
 void print_table(table *t){
 
 	printf("\n\n");
 	for (int8_t row = ROWS - 1; row >= 0; row--) {
-        for (uint8_t col = 0; col < COLS; col++) {
 
-            uint8_t idx = (row * COLS) + col;
+		if (row != 0 && (row + 1) % (ROWS) == 0) continue;
+
+        for (int8_t col = 0; col < COLS; col++) {
+
+
+            uint8_t idx = row + (ROWS * col);
 			uint64_t mask = (uint64_t) 1 << idx;
 
 			/*
@@ -43,7 +53,7 @@ void print_table(table *t){
 	}
 
 	printf("\n");
-	for (uint8_t i = 0; i < COLS; i++) printf("%d ", i + 1);
+	for (uint8_t i = 0; i < COLS; i++) printf("%d ", i);
 	printf("\n");
 }
 
@@ -56,7 +66,7 @@ uint8_t is_full(table *t){
 
 	uint64_t mask = t->u.u_table | t->c.c_table;
 
-	if (mask == ((1ULL << TOTAL) - 1)) return 1;
+	if (mask == (((1ULL << TOTAL) - 1) ^ cols_separator)) return 1;
 
 	/* corrisponde a fare 
 	 * 0 0 0 0 0 0 0 1 -> 
@@ -75,8 +85,9 @@ int8_t get_free_row(uint64_t table, uint8_t col){
 	*/
 
 
-	for (int8_t row = 0; row < ROWS; row++) {
-		uint8_t idx = (row * COLS) + col;
+	for (int8_t row = 0; row < ROWS - 1; row++) {
+//		uint8_t idx = (row * COLS) + col;
+		uint8_t idx = (col * ROWS) + row;
 
 		uint64_t mask = (uint64_t) 1 << idx;
 
@@ -135,15 +146,13 @@ int8_t user_input(table *t){
 			col--;
 			row = get_free_row(mask, col);
 
-			if (row != -1) {
-				printf("full col\n");
-				break;
-			}
+			if (row == -1) printf("full col\n");
+			else break;
 		}
 	}
 
 	if (col != -1 && row != -1) {
-		t->u.u_table |= (uint64_t) 1 << ((row * COLS) + col);
+		t->u.u_table |= (uint64_t) 1 << ((col * ROWS) + row);
 
 		/* 
 		 * occupo la casella con un OR 
@@ -155,6 +164,7 @@ int8_t user_input(table *t){
 		 * 0 1 0 0 1 1 1 0 ->
 		 * 1 1 0 0 1 1 1 0
 	   */
+
 
 		t->last_col = col;
 		t->last_row = row;
@@ -176,8 +186,32 @@ uint8_t win(table *t, uint8_t user){
 	 * al carattere passato in user
 	*/
 
-	/* controllo orizzontale 
+	
 
+	/* controllo orizzontale 
+	 * shiftare di due verso sinistra e applicare un AND
+	 * con la tabella originale
 	*/
 
+	uint64_t mask_h = (t_table) & ((t_table) << ROWS);
+	mask_h &= ((mask_h) << (2 * ROWS));
+
+	if ((mask_h) != 0) return 1;
+
+	uint64_t mask_v = (t_table) & ((t_table) << 1);
+	mask_v &= (mask_v << 2);
+
+	if ((mask_v) != 0) return 1;
+
+	uint64_t mask_d1 = (t_table) & ((t_table) << (ROWS + 1));
+	mask_d1 &= (mask_d1 << (2 * (ROWS + 1)));
+
+	if (mask_d1 != 0) return 1;
+
+	uint64_t mask_d2 = (t_table) & ((t_table) << (ROWS - 1));
+	mask_d2 &= (mask_d2 << (2 * (ROWS - 1)));
+
+	if (mask_d2 != 0) return 1;
+
+	return 0;
 }

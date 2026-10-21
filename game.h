@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define ROWS 6
+#define ROWS 7
 #define COLS 7
 
 #define TOTAL (ROWS * COLS)
